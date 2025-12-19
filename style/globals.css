@@ -1,0 +1,23 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+
+body {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  color: white;
+}
+
+.gradient {
+  width: 100%;
+  height: 100%;
+  background-image: url('../Image/background.jpg');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.drop-btn:focus > .drop-down {
+  z-index: 99 !important;
+  opacity: 1 !important;
+}
