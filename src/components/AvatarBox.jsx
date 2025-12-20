@@ -1,7 +1,7 @@
 import React from "react";
 import profilo from "../Image/profilo.jpg";
 
-export default function AvatarBox({ username, onLogout }) {
+export default function AvatarBox({ username, imageURL, onLogout }) {
   return (
     <div
       className="bg-dark border border-secondary shadow m-4 d-flex flex-column align-items-center p-4"
@@ -13,10 +13,15 @@ export default function AvatarBox({ username, onLogout }) {
       }}
     >
       <img
-        src={profilo}
+        src={imageURL || profilo}
         alt="Avatar utente"
         className="rounded-circle mb-3"
         style={{ width: "120px", height: "120px" }}
+        referrerPolicy="no-referrer"
+        onError={(e) => {
+          e.currentTarget.onerror = null;
+          e.currentTarget.src = profilo;
+        }}
       />
 
       <h5 className="text-white mb-3">{username || "Nome Utente"}</h5>

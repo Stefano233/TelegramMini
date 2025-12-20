@@ -4,15 +4,19 @@ import Login from "./components/Login";
 import background from "./Image/background.jpg";
 import { signOut } from "firebase/auth";
 import { auth } from "./firebase";
+import ChatCard from "./components/ChatCard";
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   // Sincronizza l'utente autenticato su backend MongoDB
   useEffect(() => {
     if (!user) return;
 
+
+    //invio dati al DB in maniera POST
     const syncUserToBackend = async () => {
       try {
         const res = await fetch("http://localhost:5000/api/users", {
@@ -27,10 +31,11 @@ export default function App() {
           }),
         });
 
+        //errore 
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
-
+       //test server
         console.log("Utente sincronizzato su backend Mongo");
       } catch (err) {
         console.error("Errore sync backend:", err);
@@ -46,30 +51,28 @@ export default function App() {
 
     const sendOffline = () => {
       try {
-        const payload = {
+
+        //Qui creiamo un messaggio veloce con URLSearchParams e lo inviamo con navigator.sendBeacon
+        //mentre il browser si chiude.Il messaggio dice: “questo utente è offline
+        const body = new URLSearchParams({
           uid: user.uid,
           name: user.displayName || "Utente",
           email: user.email || "",
           imageURL: user.photoURL || "",
-          online: false,
-        };
-        const json = JSON.stringify(payload);
+          online: "false",
+        });
 
         if (navigator.sendBeacon) {
-          const blob = new Blob([json], { type: "application/json" });
-          const delivered = navigator.sendBeacon(
-            "http://localhost:5000/api/users",
-            blob
-          );
-          if (delivered) return;
+          navigator.sendBeacon("http://localhost:5000/api/users", body);
+          return;
         }
 
         fetch("http://localhost:5000/api/users", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
           },
-          body: json,
+          body,
           keepalive: true,
         }).catch(() => {});
       } catch (err) {
@@ -77,22 +80,13 @@ export default function App() {
       }
     };
 
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "hidden") sendOffline();
-    };
-
     window.addEventListener("pagehide", sendOffline);
     window.addEventListener("beforeunload", sendOffline);
-    window.addEventListener("visibilitychange", onVisibilityChange);
-    window.addEventListener("unload", sendOffline);
-
+    
+    //togli i listener , per dublicazione 
     return () => {
-      // tentativo finale di segnare offline in cleanup
-      sendOffline();
       window.removeEventListener("pagehide", sendOffline);
       window.removeEventListener("beforeunload", sendOffline);
-      window.removeEventListener("visibilitychange", onVisibilityChange);
-      window.removeEventListener("unload", sendOffline);
     };
   }, [user]);
 
@@ -120,18 +114,19 @@ export default function App() {
     };
 
     pingOnline();
-    const id = setInterval(pingOnline, 5000); // ogni 5s aggiorna updatedAt
+    const id = setInterval(pingOnline, 5000);
     return () => clearInterval(id);
   }, [user]);
 
-  // Recupera utenti dal backend MongoDB (polling semplice)
+  // Recupera utenti dal backend MongoDB (polling semplice) e aggiorna la lista ogni 10 secondi 
+  // una spia 
   useEffect(() => {
     if (!user) return;
 
     const fetchUsers = async () => {
       try {
         const res = await fetch(
-          "http://localhost:5000/api/users?online=true&maxAgeSec=10"
+          "http://localhost:5000/api/users?online=false&maxAgeSec=10"
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
@@ -175,15 +170,36 @@ export default function App() {
     }
   };
 
-  // Se non c'e user, mostra Login
+  // Se non c'� user, mostra Login
   if (!user) return <Login setUser={setUser} />;
 
   const isUserOnline = (val) =>
     val === true || val === "true" || val === 1 || val === "1";
 
-  const visibleUsers = onlineUsers.filter(
-    (u) => u.uid !== user?.uid && isUserOnline(u.online)
-  );
+  const isCurrentUser = (candidate) => {
+    const sameUid = user?.uid && candidate?.uid && candidate.uid === user.uid;
+    const sameEmail =
+      user?.email &&
+      candidate?.email &&
+      candidate.email.toLowerCase() === user.email.toLowerCase();
+    return sameUid || sameEmail;
+  };
+
+  const visibleUsers = onlineUsers.filter((u) => !isCurrentUser(u));
+  const activeChatUser = selectedUser || visibleUsers[0];
+  const activeStatus = activeChatUser
+    ? isUserOnline(activeChatUser.online)
+      ? "Online"
+      : "Offline"
+    : "Offline";
+  const activeImageURL = activeChatUser
+    ? activeChatUser.imageURL ||
+      activeChatUser.photoURL ||
+      activeChatUser.avatar ||
+      (Array.isArray(activeChatUser.photos)
+        ? activeChatUser.photos[0]
+        : undefined)
+    : undefined;
 
   return (
     <div
@@ -198,32 +214,24 @@ export default function App() {
       }}
     >
       {/* Sidebar */}
-      <Sidebar user={user} logout={handleLogout} onlineUsers={visibleUsers} />
+      <Sidebar
+        user={user}
+        logout={handleLogout}
+        onlineUsers={visibleUsers}
+        onSelectUser={setSelectedUser}
+      />
 
       {/* Main content */}
       <main
-        className="flex-fill p-4 text-white"
-        style={{ backgroundColor: "rgba(0,0,0,0.05)" }}
+        className="flex-fill text-white"
+        style={{ backgroundColor: "rgba(0,0,0,0.05)", padding: 0 }}
       >
-        <h2 style={{ textShadow: "1px 1px 3px rgba(0,0,0,0.7)" }}>
-          Benvenuto {user.displayName || "Utente"}
-        </h2>
-        <p style={{ textShadow: "1px 1px 2px rgba(0,0,0,0.7)" }}>
-          Email: {user.email || "Non disponibile"}
-        </p>
-
-        {/* Lista utenti online */}
-        <div className="mt-4 p-3 bg-dark rounded text-white">
-          <h5>Utenti online:</h5>
-          {visibleUsers.length === 0 ? (
-            <p>Nessuno online</p>
-          ) : (
-            <ul>
-              {visibleUsers.map((u, i) => (
-                <li key={i}>{u.name || u.email}</li>
-              ))}
-            </ul>
-          )}
+        <div style={{ width: "100%", height: "100%" }}>
+          <ChatCard
+            name={activeChatUser?.name || activeChatUser?.email || "Utente"}
+            subtitle={activeStatus}
+            imageURL={activeImageURL}
+          />
         </div>
       </main>
     </div>

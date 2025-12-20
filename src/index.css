@@ -36,6 +36,20 @@ body {
   background-repeat: no-repeat;
 }
 
+.status-text {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.2px;
+}
+
+.status-online {
+  color: #35d07f;
+}
+
+.status-offline {
+  color: #9aa0a6;
+}
+
 h1 {
   font-size: 3.2em;
   line-height: 1.1;

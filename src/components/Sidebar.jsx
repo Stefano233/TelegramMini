@@ -5,7 +5,12 @@ import AvatarBox from "./AvatarBox";
 import { IoMdClose } from "react-icons/io";
 import Card from "./Card";
 
-export default function Sidebar({ user, logout, onlineUsers = [] }) {
+export default function Sidebar({
+  user,
+  logout,
+  onlineUsers = [],
+  onSelectUser,
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -65,7 +70,11 @@ export default function Sidebar({ user, logout, onlineUsers = [] }) {
       {/* Menu a comparsa */}
       {menuOpen && (
         <div style={{ marginTop: "10px" }}>
-          <AvatarBox username={user?.displayName || user?.email} onLogout={logout} />
+          <AvatarBox
+            username={user?.displayName || user?.email}
+            imageURL={user?.photoURL}
+            onLogout={logout}
+          />
         </div>
       )}
       <div className="overflow-auto bg-dark mt-3" style={{ height: "100vh" }}>
@@ -84,6 +93,7 @@ export default function Sidebar({ user, logout, onlineUsers = [] }) {
                 u.avatar ||
                 (Array.isArray(u.photos) ? u.photos[0] : undefined)
               }
+              onClick={() => onSelectUser?.(u)}
             />
           ))
         )}

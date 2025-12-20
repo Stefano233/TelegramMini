@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import defaultImage from "../Image/defaultImage.png";
 
-const Card = ({ name = "Utente", subtitle = "Online", imageURL }) => {
+const Card = ({ name = "Utente", subtitle = "Online", imageURL, onClick }) => {
   const [hover, setHover] = useState(false);
 
   return (
@@ -17,6 +17,7 @@ const Card = ({ name = "Utente", subtitle = "Online", imageURL }) => {
       }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onClick={onClick}
     >
       <img
         src={imageURL || defaultImage}
@@ -32,7 +33,13 @@ const Card = ({ name = "Utente", subtitle = "Online", imageURL }) => {
       />
       <div>
         <h6 className="mb-0">{name}</h6>
-        <small className="text-muted">{subtitle}</small>
+        <small
+          className={`status-text ${
+            subtitle === "Online" ? "status-online" : "status-offline"
+          }`}
+        >
+          {subtitle}
+        </small>
       </div>
     </div>
   );
