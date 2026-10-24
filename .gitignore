@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Variabili d'ambiente e segreti
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
